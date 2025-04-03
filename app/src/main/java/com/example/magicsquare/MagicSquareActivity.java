@@ -30,6 +30,8 @@ public class MagicSquareActivity extends AppCompatActivity {
     private static final int SIZE = 3; // board dimension
     private int level; // number of empty cells
 
+    private boolean isCorrect = false; // is solution correct flag
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,7 +54,8 @@ public class MagicSquareActivity extends AppCompatActivity {
 
         buttonExit.setOnClickListener(v -> {
             Intent resultIntent = new Intent();
-            resultIntent.putExtra(MagicSquareHomeActivity.EXTRA_RESULT, "Success"); // domyślnie
+            String result = isCorrect ? "Success" : "Failed";
+            resultIntent.putExtra(MagicSquareHomeActivity.EXTRA_RESULT, result);
             setResult(RESULT_OK, resultIntent);
             finish();
         });
@@ -95,12 +98,15 @@ public class MagicSquareActivity extends AppCompatActivity {
     // Populates the GridLayout with cells and sum indicators
     private void populateGrid(int level) {
         gridLayout.removeAllViews();
+
+        // Determine which positions to leave empty based on difficulty
         Set<Integer> emptyPositions = new HashSet<>();
         Random random = new Random();
         while (emptyPositions.size() < level) {
-            emptyPositions.add(random.nextInt(9)); // 0..8
+            emptyPositions.add(random.nextInt(9)); // 0–8 (3x3)
         }
 
+        // Fill grid cells with numbers or input fields
         for (int i = 0; i < SIZE; i++) {
             for (int j = 0; j < SIZE; j++) {
                 int cellIndex = i * SIZE + j;
@@ -128,7 +134,18 @@ public class MagicSquareActivity extends AppCompatActivity {
                 gridLayout.addView(cell, param);
             }
 
-            //row sum
+            // "=" sign before each row sum
+            TextView eq = new TextView(this);
+            eq.setText("=");
+            eq.setGravity(Gravity.CENTER);
+            GridLayout.LayoutParams eqParams = new GridLayout.LayoutParams();
+            eqParams.rowSpec = GridLayout.spec(i);
+            eqParams.columnSpec = GridLayout.spec(SIZE); // column 3
+            eqParams.width = 40;
+            eqParams.height = 120;
+            gridLayout.addView(eq, eqParams);
+
+            // Row sum value
             TextView rowSum = new TextView(this);
             rowSum.setText(String.valueOf(rowSums[i]));
             rowSum.setTypeface(null, Typeface.BOLD);
@@ -136,14 +153,27 @@ public class MagicSquareActivity extends AppCompatActivity {
             rowSum.setGravity(Gravity.CENTER);
             GridLayout.LayoutParams rowParams = new GridLayout.LayoutParams();
             rowParams.rowSpec = GridLayout.spec(i);
-            rowParams.columnSpec = GridLayout.spec(SIZE); // kolumna 3
+            rowParams.columnSpec = GridLayout.spec(SIZE + 1); // column 4
             rowParams.setMargins(4, 4, 4, 4);
             rowParams.width = 120;
             rowParams.height = 120;
             gridLayout.addView(rowSum, rowParams);
         }
 
-        //  Add column sums below each column
+        // Add "=" signs above each column sum
+        for (int j = 0; j < SIZE; j++) {
+            TextView eq = new TextView(this);
+            eq.setText("=");
+            eq.setGravity(Gravity.CENTER);
+            GridLayout.LayoutParams eqParams = new GridLayout.LayoutParams();
+            eqParams.rowSpec = GridLayout.spec(SIZE); // row 3
+            eqParams.columnSpec = GridLayout.spec(j);
+            eqParams.width = 120;
+            eqParams.height = 40;
+            gridLayout.addView(eq, eqParams);
+        }
+
+        // Add actual column sums
         for (int j = 0; j < SIZE; j++) {
             TextView colSum = new TextView(this);
             colSum.setText(String.valueOf(colSums[j]));
@@ -151,7 +181,7 @@ public class MagicSquareActivity extends AppCompatActivity {
             colSum.setTextColor(Color.parseColor("#63519F"));
             colSum.setGravity(Gravity.CENTER);
             GridLayout.LayoutParams colParams = new GridLayout.LayoutParams();
-            colParams.rowSpec = GridLayout.spec(SIZE); // row 3
+            colParams.rowSpec = GridLayout.spec(SIZE + 1); // row 4
             colParams.columnSpec = GridLayout.spec(j);
             colParams.setMargins(4, 4, 4, 4);
             colParams.width = 120;
@@ -159,15 +189,16 @@ public class MagicSquareActivity extends AppCompatActivity {
             gridLayout.addView(colSum, colParams);
         }
 
-        // Bottom-right corner empty cell
+        // Bottom-right corner empty cell (row 4, col 4)
         TextView corner = new TextView(this);
         GridLayout.LayoutParams cornerParams = new GridLayout.LayoutParams();
-        cornerParams.rowSpec = GridLayout.spec(SIZE); // 3
-        cornerParams.columnSpec = GridLayout.spec(SIZE); // 3
+        cornerParams.rowSpec = GridLayout.spec(SIZE + 1); // row 4
+        cornerParams.columnSpec = GridLayout.spec(SIZE + 1); // column 4
         cornerParams.width = 120;
         cornerParams.height = 120;
         gridLayout.addView(corner, cornerParams);
     }
+
 
     // Checks the user's solution
     private void checkSolution() {
@@ -218,5 +249,72 @@ public class MagicSquareActivity extends AppCompatActivity {
         }
 
         textMessage.setText("Congratulations! You solved it correctly.");
+        isCorrect = true;
+
     }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        // Store the generated solution (3x3 matrix flattened into a list)
+        ArrayList<Integer> flatSolution = new ArrayList<>();
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                flatSolution.add(solution[i][j]);
+            }
+        }
+        outState.putIntegerArrayList("solution", flatSolution);
+
+        // Store the current level (number of empty cells)
+        outState.putInt("level", level);
+
+        // Store user input values from EditTexts; null for TextViews
+        ArrayList<String> userInputs = new ArrayList<>();
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                View v = cells[i][j];
+                if (v instanceof EditText) {
+                    userInputs.add(((EditText) v).getText().toString());
+                } else {
+                    userInputs.add(null); // cell was a TextView, not editable
+                }
+            }
+        }
+        outState.putStringArrayList("userInputs", userInputs);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+
+        // Restore the flattened 3x3 solution matrix
+        ArrayList<Integer> flatSolution = savedInstanceState.getIntegerArrayList("solution");
+        level = savedInstanceState.getInt("level", 3); // default to 3 if missing
+
+        int index = 0;
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                solution[i][j] = flatSolution.get(index++);
+            }
+        }
+
+        // Recreate the grid with the correct level and positions
+        populateGrid(level);
+
+        // Restore user inputs into corresponding EditText fields
+        ArrayList<String> userInputs = savedInstanceState.getStringArrayList("userInputs");
+        index = 0;
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                View v = cells[i][j];
+                String input = userInputs.get(index++);
+                if (v instanceof EditText && input != null) {
+                    ((EditText) v).setText(input); // refill user-entered value
+                }
+            }
+        }
+    }
+
 }
+
