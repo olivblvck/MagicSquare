@@ -76,6 +76,7 @@ https://github.com/olivblvck/MagicSquare.git
 ## Demo
 
 A short video demonstrating how the game works: [Watch on YouTube](https://youtu.be/tfWMnx5UiTo)
+
 ---
 
 ## Technical Overview
