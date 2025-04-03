@@ -31,6 +31,7 @@ public class MagicSquareActivity extends AppCompatActivity {
     private int level; // number of empty cells
 
     private boolean isCorrect = false; // is solution correct flag
+    private Set<Integer> emptyPositions = new HashSet<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,8 +47,13 @@ public class MagicSquareActivity extends AppCompatActivity {
 
         // Get difficulty level from intent
         level = getIntent().getIntExtra(MagicSquareHomeActivity.EXTRA_LEVEL, 3);
-        generateMagicSquare();     // generate random 3x3 matrix
-        populateGrid(level);       // fill grid with inputs/texts and sums
+
+        if (savedInstanceState == null) {
+            // Only generate a new board if this is the first creation
+            generateMagicSquare();
+            populateGrid(level);
+        }
+        // else: grid and data will be restored in onRestoreInstanceState()
 
         // Button actions
         buttonCheck.setOnClickListener(v -> checkSolution());
@@ -65,6 +71,8 @@ public class MagicSquareActivity extends AppCompatActivity {
             startActivity(browserIntent);
         });
     }
+
+
 
     // Generates a randomized 3x3 square with digits 1-9 (no duplicates)
     private void generateMagicSquare() {
@@ -93,18 +101,18 @@ public class MagicSquareActivity extends AppCompatActivity {
             }
         }
 
+        // Determine which positions to leave empty based on difficulty
+        emptyPositions.clear();
+        Random random = new Random();
+        while (emptyPositions.size() < level) {
+            emptyPositions.add(random.nextInt(9));
+        }
+
     }
 
     // Populates the GridLayout with cells and sum indicators
     private void populateGrid(int level) {
         gridLayout.removeAllViews();
-
-        // Determine which positions to leave empty based on difficulty
-        Set<Integer> emptyPositions = new HashSet<>();
-        Random random = new Random();
-        while (emptyPositions.size() < level) {
-            emptyPositions.add(random.nextInt(9)); // 0–8 (3x3)
-        }
 
         // Fill grid cells with numbers or input fields
         for (int i = 0; i < SIZE; i++) {
@@ -268,6 +276,8 @@ public class MagicSquareActivity extends AppCompatActivity {
 
         // Store the current level (number of empty cells)
         outState.putInt("level", level);
+        outState.putIntegerArrayList("emptyPositions", new ArrayList<>(emptyPositions));
+
 
         // Store user input values from EditTexts; null for TextViews
         ArrayList<String> userInputs = new ArrayList<>();
@@ -291,11 +301,23 @@ public class MagicSquareActivity extends AppCompatActivity {
         // Restore the flattened 3x3 solution matrix
         ArrayList<Integer> flatSolution = savedInstanceState.getIntegerArrayList("solution");
         level = savedInstanceState.getInt("level", 3); // default to 3 if missing
+        ArrayList<Integer> restored = savedInstanceState.getIntegerArrayList("emptyPositions");
+        emptyPositions = new HashSet<>(restored);
 
         int index = 0;
         for (int i = 0; i < SIZE; i++) {
             for (int j = 0; j < SIZE; j++) {
                 solution[i][j] = flatSolution.get(index++);
+            }
+        }
+
+        // Recalculate sums
+        for (int i = 0; i < SIZE; i++) rowSums[i] = 0;
+        for (int j = 0; j < SIZE; j++) colSums[j] = 0;
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                rowSums[i] += solution[i][j];
+                colSums[j] += solution[i][j];
             }
         }
 
@@ -310,11 +332,12 @@ public class MagicSquareActivity extends AppCompatActivity {
                 View v = cells[i][j];
                 String input = userInputs.get(index++);
                 if (v instanceof EditText && input != null) {
-                    ((EditText) v).setText(input); // refill user-entered value
+                    ((EditText) v).setText(input);
                 }
             }
         }
     }
+
 
 }
 
