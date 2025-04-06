@@ -14,28 +14,23 @@ import android.graphics.Typeface;
 import java.util.*;
 
 public class MagicSquareActivity extends AppCompatActivity {
+    private GridLayout gridLayout;   // GridLayout with game board
+    private TextView textMessage;   // Message displayed under the grid
+    private int[][] solution = new int[3][3];   // 3x3 solution matrix
+    private View[][] cells = new View[3][3]; // References to Views (EditTexts or TextViews) in grid
+    private static final int SIZE = 3;  // Size of the grid (3x3)
+    private int level; // number of empty cells (difficulty level)
+    private boolean isCorrect = false; // is solution correct flag
+    private Set<Integer> emptyPositions = new HashSet<>();  // Positions (0 to 8) of cells that should be left empty
 
-    // GridLayout with game board
-    private GridLayout gridLayout;
-    // Message displayed under the grid
-    private TextView textMessage;
-    // 3x3 solution matrix (random permutation of 1–9)
-    private int[][] solution = new int[3][3];
-    // References to Views (EditTexts or TextViews) in grid
-    private View[][] cells = new View[3][3];
-    // Row and column sum arrays
+    // Sums for each row and column
     private int[] rowSums = new int[3];
     private int[] colSums = new int[3];
-
-    private static final int SIZE = 3; // board dimension
-    private int level; // number of empty cells
-
-    private boolean isCorrect = false; // is solution correct flag
-    private Set<Integer> emptyPositions = new HashSet<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Binding activity to XML layout file
         setContentView(R.layout.activity_magic_square);
 
         // Get view references
@@ -51,13 +46,14 @@ public class MagicSquareActivity extends AppCompatActivity {
         if (savedInstanceState == null) {
             // Only generate a new board if this is the first creation
             generateMagicSquare();
-            populateGrid(level);
+            populateGrid();
         }
         // else: grid and data will be restored in onRestoreInstanceState()
 
-        // Button actions
+        // Check button: validate user input
         buttonCheck.setOnClickListener(v -> checkSolution());
 
+        // Exit button: return to previous screen with result
         buttonExit.setOnClickListener(v -> {
             Intent resultIntent = new Intent();
             String result = isCorrect ? "Success" : "Failed";
@@ -66,21 +62,21 @@ public class MagicSquareActivity extends AppCompatActivity {
             finish();
         });
 
+        // Rules button: open Wikipedia link
         buttonRules.setOnClickListener(v -> {
             Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://en.wikipedia.org/wiki/Magic_square"));
             startActivity(browserIntent);
         });
     }
 
-
-
-    // Generates a randomized 3x3 square with digits 1-9 (no duplicates)
+    // Method generates unique numbers 1–9 and stores them in the solution array
+    // Also calculates row and column sums and randomly selects empty positions
     private void generateMagicSquare() {
         List<Integer> numbers = new ArrayList<>();
         for (int i = 1; i <= 9; i++) numbers.add(i);
-        Collections.shuffle(numbers);
+        Collections.shuffle(numbers); // shuffle numbers
 
-        // Fill solution matrix
+        // Fill the 3x3 solution array with the shuffled numbers
         int index = 0;
         for (int i = 0; i < SIZE; i++) {
             for (int j = 0; j < SIZE; j++) {
@@ -88,12 +84,8 @@ public class MagicSquareActivity extends AppCompatActivity {
             }
         }
         // Calculate row and column sums
-        for (int i = 0; i < SIZE; i++) {
-            rowSums[i] = 0;
-        }
-        for (int j = 0; j < SIZE; j++) {
-            colSums[j] = 0;
-        }
+        for (int i = 0; i < SIZE; i++) rowSums[i] = 0;
+        for (int j = 0; j < SIZE; j++) colSums[j] = 0;
         for (int i = 0; i < SIZE; i++) {
             for (int j = 0; j < SIZE; j++) {
                 rowSums[i] += solution[i][j];
@@ -101,7 +93,7 @@ public class MagicSquareActivity extends AppCompatActivity {
             }
         }
 
-        // Determine which positions to leave empty based on difficulty
+        // Randomly select positions to be left empty (based on difficulty)
         emptyPositions.clear();
         Random random = new Random();
         while (emptyPositions.size() < level) {
@@ -110,9 +102,9 @@ public class MagicSquareActivity extends AppCompatActivity {
 
     }
 
-    // Populates the GridLayout with cells and sum indicators
-    private void populateGrid(int level) {
-        gridLayout.removeAllViews();
+    // Display the grid and corresponding row/column sums
+    private void populateGrid() {
+        gridLayout.removeAllViews(); // Clear previous views to reset layout
 
         // Fill grid cells with numbers or input fields
         for (int i = 0; i < SIZE; i++) {
@@ -120,6 +112,7 @@ public class MagicSquareActivity extends AppCompatActivity {
                 int cellIndex = i * SIZE + j;
                 View cell;
 
+                // Create EditText if it's an empty position, otherwise TextView
                 if (emptyPositions.contains(cellIndex)) {
                     EditText edit = new EditText(this);
                     edit.setEms(2);
@@ -168,8 +161,8 @@ public class MagicSquareActivity extends AppCompatActivity {
             gridLayout.addView(rowSum, rowParams);
         }
 
-        // Add "=" signs above each column sum
         for (int j = 0; j < SIZE; j++) {
+            // Add "=" signs above each column sum
             TextView eq = new TextView(this);
             eq.setText("=");
             eq.setGravity(Gravity.CENTER);
@@ -179,10 +172,8 @@ public class MagicSquareActivity extends AppCompatActivity {
             eqParams.width = 120;
             eqParams.height = 40;
             gridLayout.addView(eq, eqParams);
-        }
 
-        // Add actual column sums
-        for (int j = 0; j < SIZE; j++) {
+            // Display column sums
             TextView colSum = new TextView(this);
             colSum.setText(String.valueOf(colSums[j]));
             colSum.setTypeface(null, Typeface.BOLD);
@@ -197,14 +188,6 @@ public class MagicSquareActivity extends AppCompatActivity {
             gridLayout.addView(colSum, colParams);
         }
 
-        // Bottom-right corner empty cell (row 4, col 4)
-        TextView corner = new TextView(this);
-        GridLayout.LayoutParams cornerParams = new GridLayout.LayoutParams();
-        cornerParams.rowSpec = GridLayout.spec(SIZE + 1); // row 4
-        cornerParams.columnSpec = GridLayout.spec(SIZE + 1); // column 4
-        cornerParams.width = 120;
-        cornerParams.height = 120;
-        gridLayout.addView(corner, cornerParams);
     }
 
 
@@ -213,11 +196,12 @@ public class MagicSquareActivity extends AppCompatActivity {
         Set<Integer> usedNumbers = new HashSet<>();
         int[][] userBoard = new int[SIZE][SIZE];
 
-        // Read values from grid
+        // Read input values from each cell
         for (int i = 0; i < SIZE; i++) {
             for (int j = 0; j < SIZE; j++) {
                 View cell = cells[i][j];
                 int value;
+
                 if (cell instanceof EditText) {
                     String txt = ((EditText) cell).getText().toString().trim();
                     if (txt.isEmpty()) {
@@ -228,6 +212,8 @@ public class MagicSquareActivity extends AppCompatActivity {
                 } else {
                     value = Integer.parseInt(((TextView) cell).getText().toString());
                 }
+
+                // Validate range and uniqueness
                 if (value < 1 || value > 9 || usedNumbers.contains(value)) {
                     textMessage.setText("Only numbers 1–9 without duplicates are allowed.");
                     return;
@@ -256,11 +242,13 @@ public class MagicSquareActivity extends AppCompatActivity {
             }
         }
 
+        // If all checks passed
         textMessage.setText("Congratulations! You solved it correctly.");
         isCorrect = true;
 
     }
 
+    // Save board state during orientation change
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -294,6 +282,7 @@ public class MagicSquareActivity extends AppCompatActivity {
         outState.putStringArrayList("userInputs", userInputs);
     }
 
+    // Restore board state after orientation change
     @Override
     protected void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
@@ -322,7 +311,7 @@ public class MagicSquareActivity extends AppCompatActivity {
         }
 
         // Recreate the grid with the correct level and positions
-        populateGrid(level);
+        populateGrid();
 
         // Restore user inputs into corresponding EditText fields
         ArrayList<String> userInputs = savedInstanceState.getStringArrayList("userInputs");

@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Scrollable container that allows vertical scrolling if content overflows -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
     android:background="#F5F5F5">
 
+    <!-- Main vertical layout that holds the entire screen content -->
     <LinearLayout
         android:orientation="vertical"
         android:gravity="center"
@@ -12,6 +14,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
+        <!-- GridLayout for the magic square (3x3 cells + sums and = signs) -->
         <GridLayout
             android:id="@+id/gridLayout"
             android:layout_width="wrap_content"
@@ -22,21 +25,24 @@
             android:layout_gravity="center"
             android:layout_marginBottom="24dp" />
 
+        <!-- TextView for displaying messages (errors, success info, etc.) -->
         <TextView
             android:id="@+id/textMessage"
-            android:text=" "
+            android:text=""
             android:textSize="16sp"
             android:layout_marginBottom="16dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:gravity="center" />
 
+        <!-- Button to validate the user's solution -->
         <Button
             android:id="@+id/buttonCheck"
             android:text="Check solution"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
 
+        <!-- Button to exit the game and return to the previous screen -->
         <Button
             android:id="@+id/buttonExit"
             android:text="Exit"
@@ -44,6 +50,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp" />
 
+        <!-- Button to open Wikipedia page with magic square rules -->
         <Button
             android:id="@+id/buttonRules"
             android:text="Game rules"
